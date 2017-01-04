@@ -29,28 +29,24 @@ describe Datamill::Reactor::FanIn do
   end
 
   context "when a message has been injected" do
-    let(:persistent_queue) do
-      # We cannot use rspec-mocks here because blocking in a stubbed method is not possible
-      Class.new do
-        def blocking_peek
-          before_blocking
-          sleep
-        end
-      end.new
-    end
-
     it "delivers it even when the persistent queue is blocking" do
-      expect(persistent_queue).to receive(:before_blocking) {
-        subject.inject_message message
-      }
+      wait_for_condition do |guard|
+        blocked = false
+        delivered_message = nil
+        guard.add_condition { blocked }
+        guard.add_condition { delivered_message }
 
-      delivered_message = nil
+        allow(persistent_queue).to receive(:blocking_peek) {
+          subject.inject_message message
+          guard.notify { blocked = true }
 
-      expect {
+          sleep
+        }
+
         subject.with_message do |msg|
-          delivered_message = msg
+          guard.notify { delivered_message = msg }
         end
-      }.to change { delivered_message }.to(message)
+      end
     end
   end
 end
