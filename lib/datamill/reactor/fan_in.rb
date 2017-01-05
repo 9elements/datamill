@@ -34,46 +34,54 @@ class FanIn
     return
   end
 
-  def until_value
-    loop do
-      value = yield
-      return value if value
-    end
-  end
-
   def with_message
     ensure_started!
 
-    kind, raw_message =
-      @mutex.synchronize do
-        until_value do
-          if @injected_messages.any?
-            [:ephemeral, @injected_messages.shift]
-          elsif @current_persistent_message
-            msg = @current_persistent_message
-            @current_persistent_message = nil
-            [:persistent, msg]
-          else
-            @cv.wait(@mutex)
-            nil
-          end
-        end
-      end
-
-    case kind
-    when :ephemeral
-      yield raw_message
-    when :persistent
-      yield raw_message
-      @back_channel << nil
-    else
-      raise ArgumentError
+    next_message_source.call do |message|
+      yield message
     end
 
     return
   end
 
   private
+
+  def next_message_source
+    @mutex.synchronize do
+      loop do
+        if @injected_messages.any?
+          return method(:handle_ephemeral_message_source)
+        elsif @current_persistent_message
+          return method(:handle_persistent_message_source)
+        else
+          @cv.wait(@mutex)
+        end
+      end
+    end
+  end
+
+  def handle_ephemeral_message_source
+    message =
+      @mutex.synchronize do
+        @injected_messages.shift
+      end
+
+    yield message
+  end
+
+  def handle_persistent_message_source
+    message =
+      @mutex.synchronize do
+        msg, @current_persistent_message =
+          @current_persistent_message, nil
+
+        msg
+      end
+
+    yield message
+
+    @back_channel << nil
+  end
 
   def ensure_started!
     return if @thread
