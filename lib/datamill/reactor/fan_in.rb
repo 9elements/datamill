@@ -12,8 +12,12 @@ class FanIn
     @persistent_queue = persistent_queue
 
     @ingestion_stopped = false
+
     @mutex = Mutex.new
-    @queue = Queue.new
+    @cv = ConditionVariable.new
+    @current_persistent_message = nil
+    @injected_messages = []
+
     @back_channel = Queue.new
   end
 
@@ -23,14 +27,38 @@ class FanIn
   end
 
   def inject_message(message)
-    @queue << [:ephemeral, message]
+    @mutex.synchronize do
+      @injected_messages << message
+      @cv.signal
+    end
     return
+  end
+
+  def until_value
+    loop do
+      value = yield
+      return value if value
+    end
   end
 
   def with_message
     ensure_started!
 
-    kind, raw_message = @queue.pop
+    kind, raw_message =
+      @mutex.synchronize do
+        until_value do
+          if @injected_messages.any?
+            [:ephemeral, @injected_messages.shift]
+          elsif @current_persistent_message
+            msg = @current_persistent_message
+            @current_persistent_message = nil
+            [:persistent, msg]
+          else
+            @cv.wait(@mutex)
+            nil
+          end
+        end
+      end
 
     case kind
     when :ephemeral
@@ -52,11 +80,14 @@ class FanIn
 
     @mutex.synchronize do
       @thread ||= Thread.new do
-        until @ingestion_stopped
+        until false
           message = @persistent_queue.blocking_peek
 
-          unless @ingestion_stopped
-            @queue << [:persistent, message]
+          unless false
+            @mutex.synchronize do
+              @current_persistent_message = message
+              @cv.signal
+            end
 
             @back_channel.pop
             @persistent_queue.seek
