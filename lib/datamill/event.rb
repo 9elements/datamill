@@ -55,6 +55,12 @@ class Event #< Hashie::Mash
   def to_json(*args)
     to_h.to_json(*args)
   end
+
+  # Apparently, Rails re-defines the internal recursion for JSON
+  # serializatioon to go through as_json instead of to_json...
+  def as_json(*args)
+    to_h.as_json(*args)
+  end
 end
 
 end
