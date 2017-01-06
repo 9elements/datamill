@@ -47,6 +47,10 @@ describe Datamill::Event do
     expect(
       event_class.new(initial_hash).to_json
     ).to eql(initial_hash.to_json)
+
+    expect(
+      [event_class.new(initial_hash)].to_json
+    ).to eql([initial_hash].to_json)
   end
 
   describe ".===" do
