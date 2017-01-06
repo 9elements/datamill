@@ -2,7 +2,7 @@ require 'json'
 
 module Datamill
 
-class Event #< Hashie::Mash
+class Event
   class << self
     def attributes(*attr_names)
       attr_names.each do |attr_name|
