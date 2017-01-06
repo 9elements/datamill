@@ -61,6 +61,10 @@ class Event #< Hashie::Mash
   def as_json(*args)
     to_h.as_json(*args)
   end
+
+  def ==(other)
+    super || (to_h == other)
+  end
 end
 
 end

@@ -42,6 +42,14 @@ describe Datamill::Event do
     ).to eql(initial_hash)
   end
 
+  it "equality-compares to a hash" do
+    initial_hash = build_hash(event_class)
+
+    expect(
+      event_class.new(initial_hash)
+    ).to be == initial_hash
+  end
+
   it "can be serialized as JSON" do
     initial_hash = build_hash(event_class)
     expect(
