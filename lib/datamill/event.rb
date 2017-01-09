@@ -22,6 +22,8 @@ class Event
       define_method("#{attr_name}=") do |value|
         @hash.store(attr_name, value)
       end
+
+      attributes << attr_name
     end
 
     def ===(other)
@@ -32,20 +34,30 @@ class Event
       name || raise(ArgumentError)
     end
 
+    def empty_value
+      @empty_value ||=
+        attributes.each_with_object({"datamill_event" => event_name}) { |key, acc|
+          acc[key] = nil
+        }
+    end
+
     def matches_by_format?(raw_message)
       return false unless Hash === raw_message
 
       raw_message["datamill_event"] == event_name &&
-        attributes.all? { |attr_name| raw_message.key?(attr_name) }
+        attributes.all? { |attr_name| raw_message.key?(attr_name) } &&
+        raw_message.keys.all? { |key| key == "datamill_event" || attributes.member?(key) }
     end
   end
 
-  def initialize(value = {})
-    if value.key?("datamill_event")
-      raise "ArgumentError" unless self.class.matches_by_format?(value)
+  def initialize(value = nil)
+    if value
+      raise ArgumentError unless self.class.matches_by_format?(value)
+    else
+      value = self.class.empty_value.clone
     end
 
-    @hash = {"datamill_event" => self.class.event_name}.merge(value)
+    @hash = value
   end
 
   def to_h

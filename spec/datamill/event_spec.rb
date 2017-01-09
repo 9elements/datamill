@@ -28,7 +28,21 @@ describe Datamill::Event do
   end
 
   it "can be constructed from a hash" do
-    event_class.new(build_hash(event_class))
+    event_class.new(build_hash(event_class, "key" => "value"))
+  end
+
+  it "validates hash" do
+    expect {
+      event_class.new(build_hash(event_class, "key" => "value"))
+    }.not_to raise_exception
+
+    expect {
+      event_class.new(build_hash(event_class, "key" => "value", "excess_key" => "foo"))
+    }.to raise_exception(ArgumentError)
+
+    expect {
+      event_class.new(build_hash(event_class, key: "value"))
+    }.to raise_exception(ArgumentError)
   end
 
   it "can be converted to a hash" do
@@ -36,14 +50,18 @@ describe Datamill::Event do
       event_class.new.to_h
     ).to be_instance_of(Hash)
 
-    initial_hash = build_hash(event_class)
+    expect {
+      event_class.new(event_class.new.to_h)
+    }.not_to raise_exception
+
+    initial_hash = build_hash(event_class, "key" => "value")
     expect(
       event_class.new(initial_hash).to_h
     ).to eql(initial_hash)
   end
 
   it "equality-compares to a hash" do
-    initial_hash = build_hash(event_class)
+    initial_hash = build_hash(event_class, "key" => "value")
 
     expect(
       event_class.new(initial_hash)
@@ -51,7 +69,7 @@ describe Datamill::Event do
   end
 
   it "can be serialized as JSON" do
-    initial_hash = build_hash(event_class)
+    initial_hash = build_hash(event_class, "key" => "value")
     expect(
       event_class.new(initial_hash).to_json
     ).to eql(initial_hash.to_json)
@@ -83,7 +101,7 @@ describe Datamill::Event do
     end
 
     it "case-equals a hash representation of an instance" do
-      initial_hash = build_hash(event_class)
+      initial_hash = build_hash(event_class, "key" => "value")
       expect(
         event_class
       ).to CaseEqualityMatcher.new(event_class.new(initial_hash).to_h)
