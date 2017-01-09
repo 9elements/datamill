@@ -1,24 +1,29 @@
 module Datamill
 
-class EventHandler
-  # Builds a new reactor handler for accepting and
-  # handling given event classes.
-  # Incoming messages are tested against the given event
-  # classes and if they match, converted and passed to
-  # the given block.
+module EventHandler
+  def self.module_for(*event_classes, &handler)
+    Module.new do
+      define_method(:call) do |message|
+        event_class = event_classes.find { |kls| kls === message }
+        if event_class
+          event = event_class.coerce(message)
+
+          if handler
+            handler.call(event)
+          else
+            handle_event(event)
+          end
+        end
+      end
+    end
+  end
+
   def self.for(*event_classes)
-    new(event_classes, Proc.new)
-  end
+    block = Proc.new
 
-
-  def initialize(event_classes, block)
-    @event_classes = event_classes
-    @block = block
-  end
-
-  def call(message)
-    event = @event_classes.find { |kls| kls === message }
-    @block.call(event.new(message)) if event
+    kls = Class.new
+    kls.send(:include, module_for(*event_classes, &block))
+    kls.new
   end
 end
 
