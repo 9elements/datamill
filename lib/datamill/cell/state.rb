@@ -1,4 +1,5 @@
-module Datamill::Cell
+module Datamill
+  module Cell
 
 class State
   def initialize(behaviour:, id:, persistent_data:)
@@ -10,4 +11,5 @@ class State
   attr_accessor :persistent_data
 end
 
+  end
 end

@@ -1,6 +1,7 @@
 require 'datamill/cell/state'
 
-module Datamill::Cell
+module Datamill
+  module Cell
 
 class ReactorHandler
   class << self
@@ -186,5 +187,6 @@ class ReactorHandler
   end
 end
 
+  end
 end
 
