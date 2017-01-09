@@ -1,30 +1,30 @@
 require 'datamill/cell/state'
+require 'datamill/event_handler'
+require 'datamill/event'
 
 module Datamill
   module Cell
 
 class ReactorHandler
+  module Event
+    Launch = Class.new(Datamill::Event)
+    Timeout = Class.new(Datamill::Event)
+    MessageToCell = Class.new(Datamill::Event) do
+      attributes :behaviour_name, :id, :cell_message
+    end
+  end
+
   class << self
     def build_message_to_cell(behaviour:, id:, cell_message:)
-      build_handler_message(
-        TO_CELL,
-        "behaviour" => behaviour.behaviour_name,
-        "cell_id" => id,
-        "cell_message" => cell_message
-      )
+      result = Event::MessageToCell.new
+      result.behaviour_name = behaviour.behaviour_name
+      result.id = id
+      result.cell_message = cell_message
+      result
     end
 
     def build_launch_message
-      build_handler_message(LAUNCH)
-    end
-
-    # used internally
-    def build_handler_message(msg, payload = nil)
-      {
-        "target" => AS_MESSAGE_TARGET,
-        "msg" => msg,
-        "payload" => payload
-      }
+      Event::Launch.new
     end
   end
 
@@ -36,37 +36,23 @@ class ReactorHandler
     @timeouts = {}
   end
 
-  def call(handler_message)
-    return if ignore_handler_message?(handler_message)
-
-    dispatch_handler_message(handler_message)
-
-    if next_timeout = @timeouts.values.first
-      delay = [next_timeout - Time.now, 0].max
-      message = self.class.build_handler_message(TIMER)
-      @delayed_message_emitter.call(delay, message)
-    end
-  end
+  include EventHandler.module_for(Event::Launch, Event::Timeout, Event::MessageToCell)
 
   private
 
-  def ignore_handler_message?(message)
-    !(
-      message.respond_to?(:key?) &&
-      message.fetch("target", false) == AS_MESSAGE_TARGET
-    )
-  end
-
-  def dispatch_handler_message(message)
-    case message.fetch("msg")
-    when TO_CELL
-      handle_handler_message_to_cell(message)
-    when TIMER
-      handle_handler_message_timer
-    when LAUNCH
+  def handle_event(event)
+    case event
+    when Event::Launch
       handle_handler_message_launch
-    else
-      raise ArgumentError
+    when Event::Timeout
+      handle_handler_message_timer
+    when Event::MessageToCell
+      handle_handler_message_to_cell(event)
+    end
+
+    if next_timeout = @timeouts.values.first
+      delay = [next_timeout - Time.now, 0].max
+      @delayed_message_emitter.call(delay, Event::Timeout.new)
     end
   end
 
@@ -93,17 +79,11 @@ class ReactorHandler
   end
 
   def handle_handler_message_to_cell(handler_message)
-    payload = handler_message.fetch("payload")
-
-    behaviour_name = payload.fetch("behaviour")
-    cell_id = payload.fetch("cell_id")
-    cell_message = payload.fetch("cell_message")
-
-    key = cell_key(behaviour_name, cell_id)
+    key = cell_key(handler_message.behaviour_name, handler_message.id)
     state = cell_state(key)
 
     operating_cell(key, state) do
-      state.behaviour.handle_message(state, cell_message)
+      state.behaviour.handle_message(state, handler_message.cell_message)
     end
   end
 
@@ -169,11 +149,6 @@ class ReactorHandler
       persistent_data: value,
     )
   end
-
-  AS_MESSAGE_TARGET = "CellHandler"
-  LAUNCH = "Launch"
-  TIMER = "Timer"
-  TO_CELL = "ToCell"
 
   def cell_key(behaviour, cell_id)
     "#{behaviour}-#{cell_id}"
