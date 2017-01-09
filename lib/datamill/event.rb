@@ -30,6 +30,14 @@ class Event
       super || matches_by_format?(other)
     end
 
+    def coerce(other)
+      if other.is_a?(self)
+        other
+      else
+        new(other)
+      end
+    end
+
     def event_name
       name || raise(ArgumentError)
     end
