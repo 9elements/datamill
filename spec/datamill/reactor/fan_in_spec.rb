@@ -2,6 +2,9 @@ require 'datamill/reactor/fan_in'
 
 require 'spec_helper'
 
+# TODO sometimes this suite fails with errors from
+# bad lifecycle use of rspec-mocks
+
 describe Datamill::Reactor::FanIn do
   let(:persistent_queue) {
     require 'datamill/persistent_queue/redis'
