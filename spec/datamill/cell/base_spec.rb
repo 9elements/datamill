@@ -24,12 +24,12 @@ describe Datamill::Cell::Base do
 
       # Stub implementation of a cell class
 
-      def self.serialize_id(identifier)
-        identifier.fetch(:id)
+      unserialize_cell_id_to(:first_identifier, :second_identifier) do |cell_id|
+        JSON.parse(cell_id)
       end
 
-      def self.unserialize_id(str)
-        { id: str }
+      def self.identify_cell(first_identifier, second_identifier)
+        { first_identifier: first_identifier, second_identifier: second_identifier }.to_json
       end
 
       def frobnicate(*args)
@@ -46,6 +46,11 @@ describe Datamill::Cell::Base do
     end
   end
 
+  let(:proxy_for_args) do
+    # cells can be identified by a compound identifier. proxy_for accepts multiple arguments for that.
+    ["first identifying arg", "second identifying arg"]
+  end
+
   describe ".behaviour" do
     subject { cell_class.behaviour }
 
@@ -58,10 +63,6 @@ describe Datamill::Cell::Base do
 
   describe "interaction between behaviour and cell class" do
     let(:initial_persistent_data) { double "initial persistent data" }
-
-    let(:id) do
-      { id: "identifier" }
-    end
 
     describe "proxying" do
       let(:method_arguments) { [1, "foo"] }
@@ -77,7 +78,8 @@ describe Datamill::Cell::Base do
         end
 
         expect {
-          cell_class.proxy_for(id, proxy_helper: proxy_helper).frobnicate(*method_arguments)
+          cell_class.proxy_for(*proxy_for_args, proxy_helper: proxy_helper)
+            .frobnicate(*method_arguments)
         }.to change { received }
 
         serialized_id, packed_method = received
@@ -87,7 +89,7 @@ describe Datamill::Cell::Base do
           expect(args).to eql(method_arguments)
 
           expect_instance_to_be_properly_set_up instance,
-            persistent_data: initial_persistent_data, id: id
+            persistent_data: initial_persistent_data
 
           expect_instance_to_delegate_change_of_persistent_data instance,
             cell_state: cell_state
@@ -99,7 +101,7 @@ describe Datamill::Cell::Base do
 
     describe "dispatching of behaviour messages" do
       let(:serialized_id) do
-        cell_class.serialize_id(id)
+        cell_class.identify_cell(*proxy_for_args)
       end
 
       let(:cell_state) do
@@ -111,7 +113,7 @@ describe Datamill::Cell::Base do
       it "dispatches next_timeout to the instantiated cell" do
         expect(instance_proxy).to receive(:next_timeout) do |instance|
           expect_instance_to_be_properly_set_up instance,
-            persistent_data: initial_persistent_data, id: id
+            persistent_data: initial_persistent_data
 
           timeout_return
         end
@@ -124,7 +126,7 @@ describe Datamill::Cell::Base do
       it "dispatches handle_timeout to the instantiated cell" do
         expect(instance_proxy).to receive(:handle_timeout) do |instance|
           expect_instance_to_be_properly_set_up instance,
-            persistent_data: initial_persistent_data, id: id
+            persistent_data: initial_persistent_data
 
           expect_instance_to_delegate_change_of_persistent_data instance,
             cell_state: cell_state
@@ -134,9 +136,12 @@ describe Datamill::Cell::Base do
       end
     end
 
-    def expect_instance_to_be_properly_set_up(instance, persistent_data:, id:)
+    def expect_instance_to_be_properly_set_up(instance, persistent_data:)
       expect(instance.persistent_data).to be(initial_persistent_data)
-      expect(instance.id).to eql(id)
+
+      # Dynamic attributes declared with unserialize_cell_id_to:
+      expect(instance.first_identifier).to eql(proxy_for_args.first)
+      expect(instance.second_identifier).to eql(proxy_for_args.last)
     end
 
     def expect_instance_to_delegate_change_of_persistent_data(instance, cell_state:)

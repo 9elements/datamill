@@ -14,25 +14,45 @@ class Base
     end
     attr_reader :queue
 
-    def serialize_id(id)
-      unless id.is_a?(String)
-        raise ArgumentError,
-          "using non-string identifiers requires overwriting serialize_id and unserialize_id class methods"
+    def unserialize_cell_id_to(*attribute_names)
+      @cell_id_converter = CellIdConverter.new(attribute_names, Proc.new)
+    end
+
+    def identify_cell(*args)
+      unless args.length == 1 && args.first.is_a?(String)
+        raise ArgumentError, "You are calling .proxy_for with not exactly one string.
+          In this case, you need to implement conversion between proxy_for arguments
+          and a cell id (a String) by using the unserialize_cell_id_to DSL method
+          and overiding the .identify_cell class method."
       end
 
-      id
+      args.first
     end
 
-    def unserialize_id(str)
-      str
-    end
-
-    def proxy_for(id, proxy_helper: proxy_helper())
-      cell_id = serialize_id(id)
+    def proxy_for(*args, proxy_helper: proxy_helper())
+      cell_id = identify_cell(*args)
       Proxy.new(cell_id, proxy_helper)
     end
 
+    def new(*)
+      finalize
+      super
+    end
+
     private
+
+    def finalize
+      @finalized ||= true.tap do
+        unless @cell_id_converter
+          # default implementation is to have an id attribute which is just the cell id
+          unserialize_cell_id_to(:id) do |cell_id|
+            { id: cell_id }
+          end
+        end
+
+        include @cell_id_converter.attribute_methods
+      end
+    end
 
     def proxy_helper
       @proxy_helper ||= ProxyHelper.new(behaviour, queue)
@@ -106,6 +126,32 @@ class Base
     end
   end
 
+  class CellIdConverter
+    def initialize(attribute_names, attribute_filler)
+      @attribute_names = attribute_names
+      @attribute_filler = attribute_filler
+    end
+
+    def attribute_methods
+      attribute_names = @attribute_names
+      attribute_filler = @attribute_filler
+
+      Module.new do
+        attribute_names.each do |name|
+          define_method(name) do
+            cell_id_attributes_hash.fetch(name) {
+              cell_id_attributes_hash.fetch(name.to_s)
+            }
+          end
+        end
+
+        private define_method(:cell_id_attributes_hash) {
+          @cell_id_attributes_hash ||= attribute_filler.call(cell_id)
+        }
+      end
+    end
+  end
+
   def initialize(cell_state)
     @cell_state = cell_state
   end
@@ -118,8 +164,8 @@ class Base
     @cell_state.persistent_data = data
   end
 
-  def id
-    @id ||= self.class.unserialize_id(@cell_state.id)
+  def cell_id
+    @cell_state.id
   end
 end
 
