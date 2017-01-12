@@ -95,14 +95,14 @@ class Base
   end
 
   class Proxy
-    def initialize(id, proxy_helper)
-      @id = id
+    def initialize(cell_id, proxy_helper)
+      @cell_id = cell_id
       @proxy_helper = proxy_helper
     end
 
     def method_missing(name, *args)
       packed_method = Messenger.pack_invocation(method_name: name, args: args)
-      @proxy_helper.call(@id, packed_method)
+      @proxy_helper.call(@cell_id, packed_method)
     end
   end
 
