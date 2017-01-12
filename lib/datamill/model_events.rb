@@ -3,27 +3,31 @@ module Datamill
 class ModelEvents < Hash
   def initialize(model)
     @model = model
+
+    # defaults
+    @event_attribute_names = [:id]
+    @event_attributes_filler = ->(record, event) { event.id = record.id.to_s }
   end
 
   def queue_to(queue)
     @queue = queue
   end
 
-  def identify
-    @identifier_block = Proc.new
+  def attributes(*attributes)
+    @event_attribute_names = attributes
+    @event_attributes_filler = Proc.new
   end
+  attr_reader :event_attribute_names
 
   attr_reader :queue, :model
-  attr_reader :identifier_block
 
   def callbacks
-    @callbacks ||= callbacks_class.new(self)
+    @callbacks ||= callbacks_class.new(self, @event_attribute_names)
   end
 
   def publish(record, event_key)
-    id = identifier_block.call(record)
     event = fetch(event_key).new
-    event.id = id
+    @event_attributes_filler.call(record, event)
     queue.push event
   end
 
@@ -35,6 +39,7 @@ class ModelEvents < Hash
 
     events.callbacks.generate_event_cases!
     events.callbacks.hook!
+    events.freeze
   end
 
   module ModelMethods
@@ -42,17 +47,17 @@ class ModelEvents < Hash
   end
 
   class Callbacks
-    def initialize(events)
+    def initialize(events, event_attribute_names)
       @events = events
+      @event_attribute_names = event_attribute_names
     end
     attr_reader :events
 
-    def model
-      events.model
-    end
+    def model; events.model; end
 
     def build_event_case(name_segment)
       datamill_event_name = "Datamill#{name_segment}"
+      event_attribute_names = @event_attribute_names
 
       Class.new(Datamill::Event) do
         class << self
@@ -60,7 +65,7 @@ class ModelEvents < Hash
         end
         @event_name = datamill_event_name
 
-        attribute :id
+        attributes(*event_attribute_names)
       end
     end
   end
