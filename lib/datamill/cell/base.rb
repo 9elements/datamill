@@ -31,6 +31,10 @@ class Base
 
     def proxy_for(*args, proxy_helper: proxy_helper())
       cell_id = identify_cell(*args)
+      proxy_for_cell_id(cell_id, proxy_helper: proxy_helper)
+    end
+
+    def proxy_for_cell_id(cell_id, proxy_helper: proxy_helper())
       Proxy.new(cell_id, proxy_helper)
     end
 
