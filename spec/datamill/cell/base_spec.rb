@@ -65,37 +65,31 @@ describe Datamill::Cell::Base do
     let(:initial_persistent_data) { double "initial persistent data" }
 
     describe "proxying" do
-      let(:method_arguments) { [1, "foo"] }
-
       let(:proxy_helper) do
         double "proxy helper"
       end
 
+      let(:method_arguments) { [1, "foo"] }
+
       it "dispatches a proxy method call to the instantiated cell" do
-        received = nil
-        allow(proxy_helper).to receive(:call) do |serialized_id, packed_method|
-          received = [serialized_id, packed_method]
+        expect(proxy_helper).to receive(:call) do |serialized_id, packed_method|
+          cell_state = build_cell_state(serialized_id)
+
+          expect(instance_proxy).to receive(:frobnicate) do |instance, *args|
+            expect(args).to eql(method_arguments)
+
+            expect_instance_to_be_properly_set_up instance,
+              persistent_data: initial_persistent_data
+
+            expect_instance_to_delegate_change_of_persistent_data instance,
+              cell_state: cell_state
+          end
+
+          cell_class.behaviour.handle_message(cell_state, packed_method)
         end
 
-        expect {
-          cell_class.proxy_for(*proxy_for_args, proxy_helper: proxy_helper)
-            .frobnicate(*method_arguments)
-        }.to change { received }
-
-        serialized_id, packed_method = received
-        cell_state = build_cell_state(serialized_id)
-
-        expect(instance_proxy).to receive(:frobnicate) do |instance, *args|
-          expect(args).to eql(method_arguments)
-
-          expect_instance_to_be_properly_set_up instance,
-            persistent_data: initial_persistent_data
-
-          expect_instance_to_delegate_change_of_persistent_data instance,
-            cell_state: cell_state
-        end
-
-        cell_class.behaviour.handle_message(cell_state, packed_method)
+        cell_class.proxy_for(*proxy_for_args, proxy_helper: proxy_helper)
+          .frobnicate(*method_arguments)
       end
     end
 
