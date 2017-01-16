@@ -1,6 +1,8 @@
 module Datamill::Cell
 
 module Behaviour
+  # This defines the expected interface for a cell behaviour.
+
   def self.handle_message(state, message)
   end
 
