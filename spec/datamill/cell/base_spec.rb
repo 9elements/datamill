@@ -32,6 +32,21 @@ describe Datamill::Cell::Base do
         { first_identifier: first_identifier, second_identifier: second_identifier }.to_json
       end
 
+      add_middleware :bottom_around
+      add_middleware ->(cell, method_name, args, block) {
+        instance_proxy.top_around_before(cell, method_name, args)
+        result = block.call
+        instance_proxy.top_around_after(cell, method_name, args)
+        return result
+      }
+
+      def bottom_around(method_name, args)
+        self.class.instance_proxy.bottom_around_before(self, method_name, args)
+        result = yield
+        self.class.instance_proxy.bottom_around_after(self, method_name, args)
+        return result
+      end
+
       def frobnicate(*args)
         self.class.instance_proxy.frobnicate(self, *args)
       end
@@ -75,14 +90,16 @@ describe Datamill::Cell::Base do
         expect(proxy_helper).to receive(:call) do |serialized_id, packed_method|
           cell_state = build_cell_state(serialized_id)
 
-          expect(instance_proxy).to receive(:frobnicate) do |instance, *args|
-            expect(args).to eql(method_arguments)
+          expecting_ordered_middleware_invocations("frobnicate", method_arguments) do
+            expect(instance_proxy).to receive(:frobnicate) do |instance, *args|
+              expect(args).to eql(method_arguments)
 
-            expect_instance_to_be_properly_set_up instance,
-              persistent_data: initial_persistent_data
+              expect_instance_to_be_properly_set_up instance,
+                persistent_data: initial_persistent_data
 
-            expect_instance_to_delegate_change_of_persistent_data instance,
-              cell_state: cell_state
+              expect_instance_to_delegate_change_of_persistent_data instance,
+                cell_state: cell_state
+            end.ordered
           end
 
           cell_class.behaviour.handle_message(cell_state, packed_method)
@@ -105,11 +122,13 @@ describe Datamill::Cell::Base do
       let(:timeout_return) { double "timeout return" }
 
       it "dispatches next_timeout to the instantiated cell" do
-        expect(instance_proxy).to receive(:next_timeout) do |instance|
-          expect_instance_to_be_properly_set_up instance,
-            persistent_data: initial_persistent_data
+        expecting_ordered_middleware_invocations("next_timeout") do
+          expect(instance_proxy).to receive(:next_timeout) do |instance|
+            expect_instance_to_be_properly_set_up instance,
+              persistent_data: initial_persistent_data
 
-          timeout_return
+            timeout_return
+          end
         end
 
         expect(
@@ -118,16 +137,27 @@ describe Datamill::Cell::Base do
       end
 
       it "dispatches handle_timeout to the instantiated cell" do
-        expect(instance_proxy).to receive(:handle_timeout) do |instance|
-          expect_instance_to_be_properly_set_up instance,
-            persistent_data: initial_persistent_data
+        expecting_ordered_middleware_invocations("handle_timeout") do
+          expect(instance_proxy).to receive(:handle_timeout) do |instance|
+            expect_instance_to_be_properly_set_up instance,
+              persistent_data: initial_persistent_data
 
-          expect_instance_to_delegate_change_of_persistent_data instance,
-            cell_state: cell_state
+            expect_instance_to_delegate_change_of_persistent_data instance,
+              cell_state: cell_state
+          end.ordered
         end
 
         cell_class.behaviour.handle_timeout(cell_state)
       end
+    end
+
+    def expecting_ordered_middleware_invocations(method_name, expected_args = [])
+      a_cell = an_instance_of(cell_class)
+      expect(instance_proxy).to receive(:bottom_around_before).with(a_cell, method_name, expected_args).ordered
+      expect(instance_proxy).to receive(:top_around_before).with(a_cell, method_name, expected_args).ordered
+      yield
+      expect(instance_proxy).to receive(:top_around_after).with(a_cell, method_name, expected_args).ordered
+      expect(instance_proxy).to receive(:bottom_around_after).with(a_cell, method_name, expected_args).ordered
     end
 
     def expect_instance_to_be_properly_set_up(instance, persistent_data:)

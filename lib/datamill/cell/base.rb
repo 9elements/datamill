@@ -14,6 +14,44 @@ class Base
     end
     attr_reader :queue
 
+    # Adds a middleware to the stack for this cell class.
+    # Middlewares wrap around cell method invocations when the cell is being
+    # operated upon, that is, when it is being invoked from its behaviour.
+    # Invocations from _inside_ such a method are not affected.
+    #
+    # Middlewares are intended for things like exception tracing and
+    # presenting a cell's compound persistent state in a nicer way.
+    #
+    # A middleware is a callable expecting four _regular_ parameters,
+    # * the cell instance
+    # * the name of the method the invocation wraps, as a STRING
+    # * an array of arguments being passed to the method
+    # * a callable (without args) to recurse down the middleware stack.
+    #
+    # Alternatively, a symbol can be passed. In this case, the
+    # corresponding cell instance method will be passed with the same
+    # arguments except:
+    # * the cell instance is dropped (it is already the receiver of the middleware method)
+    # * the recursion callable is passed as a block argument
+    #
+    # When implementing your middleware, make sure to pass on return values.
+    #
+    # Midlewares are added in the order from the bottom (close to the reactor)
+    # to the top (close to the invoked method) of the stack.
+    def add_middleware(middleware)
+      middleware_callables <<
+        case middleware
+        when Symbol
+          ->(cell, method_name, args, callable) { cell.send(middleware, method_name, args, &callable) }
+        else
+          middleware
+        end
+    end
+
+    def middleware_callables
+      @middleware_callables ||= []
+    end
+
     def unserialize_cell_id_to(*attribute_names)
       @cell_id_converter = CellIdConverter.new(attribute_names, Proc.new)
     end
@@ -90,15 +128,19 @@ class Base
     def handle_message(cell_state, message)
       Messenger.send_packed_invocation(
         receiver: @cell_class.new(cell_state),
-        packed_invocation: message)
+        packed_invocation: message
+      )
     end
 
     def handle_timeout(cell_state)
-      @cell_class.new(cell_state).handle_timeout
+      receiver = @cell_class.new(cell_state)
+
+      receiver.send_with_middlewares("handle_timeout")
     end
 
     def next_timeout(cell_state)
-      @cell_class.new(cell_state).next_timeout
+      receiver = @cell_class.new(cell_state)
+      receiver.send_with_middlewares("next_timeout")
     end
 
     def behaviour_name
@@ -114,7 +156,8 @@ class Base
 
     def self.send_packed_invocation(receiver:, packed_invocation:)
       method_name, args = packed_invocation
-      receiver.send(method_name, *args)
+
+      receiver.send_with_middlewares(method_name, *args)
     end
   end
 
@@ -170,6 +213,22 @@ class Base
 
   def cell_id
     @cell_state.id
+  end
+
+  def send_with_middlewares(method_name, *args)
+    send_with_explicit_middlewares(
+      self.class.middleware_callables.clone, method_name, *args)
+  end
+
+  private
+
+  def send_with_explicit_middlewares(middlewares, method_name, *args)
+    if middleware = middlewares.shift
+      block = ->{ send_with_explicit_middlewares(middlewares, method_name, *args) }
+      middleware.call(self, method_name, args, block)
+    else
+      send(method_name, *args)
+    end
   end
 end
 
