@@ -50,7 +50,7 @@ class ReactorHandler
       handle_handler_message_to_cell(event)
     end
 
-    if next_timeout = @timeouts.values.first
+    if next_timeout = @timeouts.values.sort.first
       delay = [next_timeout - Time.now, 0].max
       @delayed_message_emitter.call(delay, Event::Timeout.new)
     end
@@ -61,8 +61,7 @@ class ReactorHandler
       state = cell_state(key)
 
       operating_cell(key, state) do
-        # do not call the cell behaviour,
-        # just let operating_cell handle the timeout bookkeeping
+        state.behaviour.nop(state)
       end
     end
   end
@@ -70,9 +69,11 @@ class ReactorHandler
   def handle_handler_message_timer
     now = Time.now
 
-    @persistent_hash.keys.each do |key|
+    @timeouts.each_pair do |key, time|
+      next if time > now
+
       state = cell_state(key)
-      operating_cell(key, state, only_if_due_at: now) do
+      operating_cell(key, state) do
         state.behaviour.handle_timeout(state)
       end
     end
@@ -90,6 +91,9 @@ class ReactorHandler
   private
 
   module NullBehaviour
+    def self.nop(state)
+    end
+
     def self.handle_message(state, message)
       state.persistent_data = nil
     end
@@ -97,32 +101,26 @@ class ReactorHandler
     def self.handle_timeout(state)
       state.persistent_data = nil
     end
-
-    def self.next_timeout(state)
-      nil
-    end
   end
 
-  def operating_cell(key, state, only_if_due_at: nil)
-    if !only_if_due_at || due_at?(state, only_if_due_at)
-      persistent_data = state.persistent_data
+  def operating_cell(key, state)
+    persistent_data = state.persistent_data
 
-      yield state
+    yield state
 
-      if !state.persistent_data.equal?(persistent_data)
-        if state.persistent_data.nil?
-          @persistent_hash.delete key
-        else
-          @persistent_hash[key] = state.persistent_data
-        end
+    if !state.persistent_data.equal?(persistent_data)
+      if state.persistent_data.nil?
+        @persistent_hash.delete key
+      else
+        @persistent_hash[key] = state.persistent_data
       end
+    end
 
-      unless state.persistent_data.nil?
-        if next_timeout = state.behaviour.next_timeout(state)
-          @timeouts[key] = next_timeout
-        else
-          @timeouts.delete key
-        end
+    unless state.persistent_data.nil?
+      if next_timeout = state.next_timeout
+        @timeouts[key] = next_timeout
+      else
+        @timeouts.delete key
       end
     end
 
@@ -131,12 +129,6 @@ class ReactorHandler
 
     @timeouts.delete key
     @persistent_hash.delete key
-  end
-
-  def due_at?(state, time)
-    next_timeout = state.behaviour.next_timeout(state)
-
-    next_timeout && next_timeout <= time
   end
 
   def cell_state(key)

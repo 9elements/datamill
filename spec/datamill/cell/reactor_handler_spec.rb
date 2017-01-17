@@ -15,13 +15,7 @@ describe Datamill::Cell::ReactorHandler do
 
   def self.declare_behaviour(name)
     let(name) do
-      instance_double(
-        Datamill::Cell::Behaviour.singleton_class,
-        {
-          behaviour_name: name.to_s,
-          next_timeout: nil
-        }
-      )
+      instance_double(Datamill::Cell::Behaviour.singleton_class, behaviour_name: name.to_s)
     end
 
     before do
@@ -78,21 +72,16 @@ describe Datamill::Cell::ReactorHandler do
 
       context "when cell signals a timeout is necessary" do
         it "uses timer to perform timeout message delivery" do
-          next_timeout = nil
-          allow(behaviour).to receive(:next_timeout) { |_|
-            next_timeout
+          allow(behaviour).to receive(:nop) { |state|
+            state.next_timeout = Time.now
           }
 
           emitted_message =
             expect_to_cause_one_delayed_message do
-              next_timeout = Time.now
               subject.call(described_class.build_launch_message)
             end
 
-          next_timeout = Time.now
-          expect(behaviour).to receive(:handle_timeout) do
-            next_timeout = nil
-          end
+          expect(behaviour).to receive(:handle_timeout)
           subject.call(emitted_message)
         end
       end
@@ -152,44 +141,16 @@ describe Datamill::Cell::ReactorHandler do
         end
       end
 
-      context "when cell crashes in next_timeout" do
-        before do
-          subject.call(described_class.build_launch_message)
-        end
-
-        it "does not crash the subject" do
-          allow(behaviour).to \
-            receive(:handle_message) do |state, _|
-              state.persistent_data = "keep me around"
-            end
-
-          expect(behaviour).to \
-            receive(:next_timeout) do |_, _|
-              raise "bad behaviour"
-            end
-
-          expect {
-            subject.call(handler_message)
-          }.not_to raise_exception
-        end
-      end
-
       context "when cell crashes in handle_timeout" do
         before do
           subject.call(described_class.build_launch_message)
         end
 
         it "does not crash the subject" do
-          next_timeout = Time.now
-
           allow(behaviour).to \
             receive(:handle_message) do |state, _|
               state.persistent_data = "keep me around"
-            end
-
-          allow(behaviour).to \
-            receive(:next_timeout) do |_, _|
-              next_timeout
+              state.next_timeout = Time.now
             end
 
           expect(behaviour).to \
@@ -207,7 +168,6 @@ describe Datamill::Cell::ReactorHandler do
           }.not_to raise_exception
         end
       end
-
 
       context "when cell does not exist" do
         before do
@@ -238,15 +198,10 @@ describe Datamill::Cell::ReactorHandler do
         end
 
         it "uses timer to perform timeout message delivery" do
-          next_timeout = nil
-          allow(behaviour).to receive(:next_timeout) { |_|
-            next_timeout
-          }
-
           allow(behaviour).to \
             receive(:handle_message) do |state, _|
               state.persistent_data = "some data to keep cell alive"
-              next_timeout = Time.now
+              state.next_timeout = Time.now
             end
 
           emitted_message =
@@ -254,10 +209,7 @@ describe Datamill::Cell::ReactorHandler do
               subject.call(handler_message)
             end
 
-          next_timeout = Time.now
-          expect(behaviour).to receive(:handle_timeout) do
-            next_timeout = nil
-          end
+          expect(behaviour).to receive(:handle_timeout)
           subject.call(emitted_message)
         end
       end
@@ -336,14 +288,12 @@ describe Datamill::Cell::ReactorHandler do
         persistent_hash[persistent_key] = initial_data
       end
 
-      it "emits a delayed message, upon which handle_timeout is called on both" do
-        behaviour1_timeouts = [Time.now, Time.now]
-        allow(behaviour1).to receive(:next_timeout) { |_|
-          behaviour1_timeouts.pop
+      it "delivers independent handle_timeout messages when behaviours demanded it in `.nop`" do
+        allow(behaviour1).to receive(:nop) { |state|
+          state.next_timeout = Time.now
         }
-        behaviour2_timeouts = [Time.now, Time.now]
-        allow(behaviour2).to receive(:next_timeout) { |_|
-          behaviour2_timeouts.pop
+        allow(behaviour2).to receive(:nop) { |state|
+          state.next_timeout = Time.now
         }
 
         emitted_message =
@@ -374,15 +324,10 @@ describe Datamill::Cell::ReactorHandler do
       }
 
       it "is not triggered again when no further timeout is demanded" do
-        next_timeout = nil
-        allow(behaviour).to receive(:next_timeout) { |_|
-          next_timeout
-        }
-
         allow(behaviour).to \
           receive(:handle_message) do |state, _|
-            next_timeout = Time.now
             state.persistent_data = "some data to keep cell alive"
+            state.next_timeout = Time.now
           end
 
         emitted_message =
@@ -390,9 +335,9 @@ describe Datamill::Cell::ReactorHandler do
             subject.call(handler_message)
           end
 
-        next_timeout = Time.now
-        expect(behaviour).to receive(:handle_timeout) do
-          next_timeout = nil
+        expect(behaviour).to receive(:handle_timeout) do |state|
+          # not demanding a further timeout here means we don't change this condition:
+          expect(state.next_timeout).to be_nil
         end
 
         expect_not_to_cause_a_delayed_message do
@@ -401,15 +346,10 @@ describe Datamill::Cell::ReactorHandler do
       end
 
       it "it not triggered when persistent data is cleared" do
-        next_timeout = nil
-        allow(behaviour).to receive(:next_timeout) { |_|
-          next_timeout
-        }
-
         allow(behaviour).to \
           receive(:handle_message) do |state, _|
-            next_timeout = Time.now
             state.persistent_data = nil
+            state.next_timeout = Time.now
           end
 
         expect_not_to_cause_a_delayed_message do

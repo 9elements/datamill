@@ -215,6 +215,10 @@ class Base
     @cell_state.id
   end
 
+  def next_timeout=(timeout)
+    @cell_state.next_timeout = timeout
+  end
+
   def send_with_middlewares(method_name, *args)
     send_with_explicit_middlewares(
       self.class.middleware_callables.clone, method_name, *args)
