@@ -4,11 +4,13 @@ module Datamill::Reactor
 
 class Instance
   def initialize(persistent_queue:, fan_in: FanIn.new(persistent_queue: persistent_queue))
+    @persistent_queue = persistent_queue
     @fan_in = fan_in
     @handlers = []
     @running = true
     @injected_messages = []
   end
+  attr_reader :persistent_queue
 
   def add_handler(handler)
     @handlers << handler
