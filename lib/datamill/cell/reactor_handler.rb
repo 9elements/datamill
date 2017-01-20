@@ -28,12 +28,17 @@ class ReactorHandler
     end
   end
 
-  def initialize(persistent_hash:, behaviour_registry:, delayed_message_emitter:)
+  def initialize(persistent_hash:, delayed_message_emitter:)
     @persistent_hash = persistent_hash
-    @behaviour_registry = behaviour_registry
     @delayed_message_emitter = delayed_message_emitter
 
+    @behaviours_by_name = {}
     @timeouts = {}
+  end
+
+  def register_behaviour(named_behaviour)
+    @behaviours_by_name[named_behaviour.behaviour_name] = named_behaviour
+    self
   end
 
   include EventHandler.module_for(Event::Launch, Event::Timeout, Event::MessageToCell)
@@ -148,7 +153,7 @@ class ReactorHandler
 
   def cell_key_to_behaviour_and_id(key)
     behaviour_name, id = key.split('-', 2)
-    behaviour = @behaviour_registry[behaviour_name] || NullBehaviour
+    behaviour = @behaviours_by_name[behaviour_name] || NullBehaviour
 
     [behaviour, id]
   end

@@ -1,5 +1,4 @@
 require 'datamill/cell/reactor_handler'
-require 'datamill/cell/behaviour_registry'
 require 'datamill/cell/behaviour'
 
 describe Datamill::Cell::ReactorHandler do
@@ -7,11 +6,6 @@ describe Datamill::Cell::ReactorHandler do
   let(:delayed_message_emitter) { double "delayed message emitter" }
 
   let(:behaviours) { [] }
-  let(:behaviour_registry) do
-    Datamill::Cell::BehaviourRegistry.new.tap do |registry|
-      behaviours.each { |behaviour| registry.register(behaviour) }
-    end
-  end
 
   def self.declare_behaviour(name)
     let(name) do
@@ -24,11 +18,17 @@ describe Datamill::Cell::ReactorHandler do
   end
 
   subject {
-    described_class.new(
-      persistent_hash: persistent_hash,
-      behaviour_registry: behaviour_registry,
-      delayed_message_emitter: delayed_message_emitter
-    )
+    result =
+      described_class.new(
+        persistent_hash: persistent_hash,
+        delayed_message_emitter: delayed_message_emitter
+      )
+
+    behaviours.each do |behaviour|
+      result.register_behaviour behaviour
+    end
+
+    result
   }
 
   def expect_to_cause_one_delayed_message
