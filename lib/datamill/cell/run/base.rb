@@ -39,6 +39,8 @@ class Base
         when Symbol
           ->(run, method_name, args, callable) { run.send(middleware, method_name, args, &callable) }
         else
+          middleware.added(self) if middleware.respond_to?(:added)
+
           middleware
         end
     end
