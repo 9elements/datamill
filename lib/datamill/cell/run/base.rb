@@ -1,7 +1,8 @@
 module Datamill
   module Cell
+    module Run
 
-class Run
+class Base
   # Represents a single run of a cell operated by a Cell::Culture.
 
   class << self
@@ -91,7 +92,6 @@ class Run
   end
 end
 
+    end
   end
 end
-
-

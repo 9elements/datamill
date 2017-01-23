@@ -1,4 +1,4 @@
-require 'datamill/cell/run'
+require 'datamill/cell/run/base'
 require 'datamill/cell/reactor_handler'
 
 module Datamill
@@ -12,7 +12,7 @@ class Culture
   class << self
     # Provide an implementation for a cell run by passing a block!
     def describe_cell
-      @cell_run_class = Class.new(Run, &Proc.new)
+      @cell_run_class = Class.new(Run::Base, &Proc.new)
       const_set "CellRun", @cell_run_class # nice for debugging
       return @cell_run_class
     end
