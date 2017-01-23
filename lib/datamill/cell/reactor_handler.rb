@@ -1,5 +1,4 @@
 require 'datamill/cell/state'
-require 'datamill/event_handler'
 require 'datamill/event'
 
 module Datamill
@@ -41,25 +40,30 @@ class ReactorHandler
     self
   end
 
-  include EventHandler.module_for(Event::Launch, Event::Timeout, Event::MessageToCell)
+  def call(message)
+    event =
+      Datamill::Event.try_coerce_message(
+        message,
+        event_classes: [Event::Launch, Event::Timeout, Event::MessageToCell])
 
-  private
+    if event
+      case event
+      when Event::Launch
+        handle_handler_message_launch
+      when Event::Timeout
+        handle_handler_message_timer
+      when Event::MessageToCell
+        handle_handler_message_to_cell(event)
+      end
 
-  def handle_event(event)
-    case event
-    when Event::Launch
-      handle_handler_message_launch
-    when Event::Timeout
-      handle_handler_message_timer
-    when Event::MessageToCell
-      handle_handler_message_to_cell(event)
-    end
-
-    if next_timeout = @timeouts.values.sort.first
-      delay = [next_timeout - Time.now, 0].max
-      @delayed_message_emitter.call(delay, Event::Timeout.new)
+      if next_timeout = @timeouts.values.sort.first
+        delay = [next_timeout - Time.now, 0].max
+        @delayed_message_emitter.call(delay, Event::Timeout.new)
+      end
     end
   end
+
+  private
 
   def handle_handler_message_launch
     @persistent_hash.keys.each do |key|
