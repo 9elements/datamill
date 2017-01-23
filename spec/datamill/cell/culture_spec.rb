@@ -2,7 +2,7 @@ require 'datamill/cell/culture'
 
 describe Datamill::Cell::Culture do
   let(:persistent_message_sink) { double "persistent message sink" }
-  let(:volatile_message_sink) { double "volatile message sink" }
+  let(:ephemeral_message_sink) { double "ephemeral message sink" }
 
   let(:run_assertion_double) { double "run assertion double" }
   let(:culture_assertion_double) { double "culture assertion double" }
@@ -41,11 +41,11 @@ describe Datamill::Cell::Culture do
       # ...also demonstrating cultures can be initialized with dependencies!
       def initialize(
           culture_assertion_double:, run_assertion_double:,
-          persistent_message_sink:, volatile_message_sink:)
+          persistent_message_sink:, ephemeral_message_sink:)
         @run_assertion_double = run_assertion_double
         @assertion_double = culture_assertion_double
         @persistent_message_sink = persistent_message_sink
-        @volatile_message_sink = volatile_message_sink
+        @ephemeral_message_sink = ephemeral_message_sink
       end
       attr_reader :run_assertion_double
 
@@ -60,17 +60,17 @@ describe Datamill::Cell::Culture do
         @persistent_message_sink
       end
 
-      # Culture needs to implement (when volatile messaging is being used):
-      def volatile_message_sink
-        @volatile_message_sink
+      # Culture needs to implement (when ephemeral messaging is being used):
+      def ephemeral_message_sink
+        @ephemeral_message_sink
       end
 
       def do_something_with_cell(id_part_1, id_part_2, payload)
         proxy.for_cell(id_part_1, id_part_2).frobnicate(payload)
       end
 
-      def do_something_with_cell_volatile(id_part_1, id_part_2, payload)
-        proxy(volatile: true).for_cell(id_part_1, id_part_2).frobnicate(payload)
+      def do_something_with_cell_ephemeral(id_part_1, id_part_2, payload)
+        proxy(ephemeral: true).for_cell(id_part_1, id_part_2).frobnicate(payload)
       end
 
       # demonstrate conversion of custom `.for_cell` arguments
@@ -85,7 +85,7 @@ describe Datamill::Cell::Culture do
       culture_assertion_double: culture_assertion_double,
       run_assertion_double: run_assertion_double,
       persistent_message_sink: persistent_message_sink,
-      volatile_message_sink: volatile_message_sink
+      ephemeral_message_sink: ephemeral_message_sink
     )
   end
 
@@ -145,14 +145,14 @@ describe Datamill::Cell::Culture do
       end
     end
 
-    context "with the volatile message sink" do
+    context "with the ephemeral message sink" do
       let(:sink) do
-        volatile_message_sink
+        ephemeral_message_sink
       end
 
       it_behaves_like "wrapping a proxied message and being able to deliver it" do
         def invoke_proxy
-          subject.do_something_with_cell_volatile(*custom_cell_identifier, *payload)
+          subject.do_something_with_cell_ephemeral(*custom_cell_identifier, *payload)
         end
       end
     end

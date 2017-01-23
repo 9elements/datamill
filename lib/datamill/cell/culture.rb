@@ -47,16 +47,16 @@ class Culture
     raise NotImplementedError # must be overridden
   end
 
-  # returns the reactor's sink for volatile messages, as a simpe callable
-  def volatile_message_sink
+  # returns the reactor's sink for ephemeral messages, as a simpe callable
+  def ephemeral_message_sink
     raise NotImplementedError # must be overridden
   end
 
-  def proxy(volatile: false)
+  def proxy(ephemeral: false)
     @proxy_factories ||= Hash.new do |hash, key|
       sink =
         if key
-          volatile_message_sink
+          ephemeral_message_sink
         else
           persistent_message_sink
         end
@@ -67,7 +67,7 @@ class Culture
         method(:cell_id)
       )
     end
-    @proxy_factories[volatile]
+    @proxy_factories[ephemeral]
   end
 
   def cell_run(cell_state)
