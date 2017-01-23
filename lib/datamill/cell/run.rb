@@ -14,7 +14,7 @@ class Run
     # presenting a cell's compound persistent state in a nicer way.
     #
     # A middleware is a callable like this:
-    # `->(run, method_name, args, callable)` where
+    # `->(run, method_name, args, callable) { ... callable.call; ... }` where
     # * `run` is the Run instance
     # * `method_name` is the invoked method as a String
     # * `args` is the arguments of the call
