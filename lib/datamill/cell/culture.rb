@@ -13,6 +13,8 @@ class Culture
     # Provide an implementation for a cell run by passing a block!
     def describe_cell
       @cell_run_class = Class.new(Run, &Proc.new)
+      const_set "CellRun", @cell_run_class # nice for debugging
+      return @cell_run_class
     end
     attr_reader :cell_run_class
   end
