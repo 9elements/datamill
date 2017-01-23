@@ -11,6 +11,34 @@ describe Datamill::Event do
     end
   end
 
+  describe ".try_coerce_message" do
+    let(:event) do
+      event_class.new
+    end
+
+    let(:event_as_hash) do
+      event_class.new.to_h
+    end
+
+    it "coerces a hash matching an event" do
+      expect(
+        described_class.try_coerce_message(event_as_hash, event_classes: [event_class])
+      ).to be_a(event_class)
+    end
+
+    it "passes a matching event instance through" do
+      expect(
+        described_class.try_coerce_message(event, event_classes: [event_class])
+      ).to equal(event)
+    end
+
+    it "converts anything else to nil" do
+      expect(
+        described_class.try_coerce_message("bogus", event_classes: [event_class])
+      ).to be_nil
+    end
+  end
+
   def build_hash(event_cls, data = {})
     # this should be the only place we assume internal knowledge ;)
     data.merge("datamill_event" => event_cls.event_name)

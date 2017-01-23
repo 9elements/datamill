@@ -30,6 +30,12 @@ class Event
       super || matches_by_format?(other)
     end
 
+    def try_coerce_message(message, event_classes: [self])
+      if event_class = event_classes.find { |kls| kls === message }
+        event_class.coerce(message)
+      end
+    end
+
     def coerce(other)
       if other.is_a?(self)
         other
