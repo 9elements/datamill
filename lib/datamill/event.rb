@@ -91,6 +91,14 @@ class Event
   def ==(other)
     super || (to_h == other)
   end
+
+  def to_s
+    "Datamill::Event[ #{self.class.event_name}: #{
+      values = @hash.clone
+      values.delete "datamill_event"
+      values.inspect
+    } ]"
+  end
 end
 
 end
