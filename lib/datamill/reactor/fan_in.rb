@@ -88,10 +88,10 @@ class FanIn
 
     @mutex.synchronize do
       @thread ||= Thread.new do
-        until false
+        until @ingestion_stopped
           message = @persistent_queue.blocking_peek
 
-          unless false
+          unless @ingestion_stopped
             @mutex.synchronize do
               @current_persistent_message = message
               @cv.signal
