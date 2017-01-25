@@ -10,7 +10,15 @@ class ModelEvents < Hash
     # defaults
     @event_attribute_names = [:id]
     @event_attributes_filler = ->(record, event) { event.id = record.id.to_s }
+    @before_destroy_effective_callable = Proc.new {}
   end
+
+  # Yields with the record. Abstracts away the details of transactionfull/~less
+  # callback handling.
+  def before_destroy_effective
+    @before_destroy_effective_callable = Proc.new
+  end
+  attr_reader :before_destroy_effective_callable
 
   def queue_to(queue)
     @queue = queue
@@ -83,6 +91,11 @@ class ModelEvents < Hash
       model.after_save do
         model_events = self.class.datamill_model_events
         model_events.publish(self, "saved")
+      end
+
+      model.before_destroy do
+        model_events = self.class.datamill_model_events
+        model_events.before_destroy_effective_callable.call(self)
       end
 
       model.after_destroy do
