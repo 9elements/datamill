@@ -3,8 +3,8 @@ require 'json'
 module Datamill
   module PersistentHash
 
+# Decorator class for (de)serialization values via JSON format
 class AsJson
-  # Decorator class for (de)serialization values via JSON format
 
   def self.decorate(hash)
     new(hash)

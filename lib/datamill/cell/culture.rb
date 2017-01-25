@@ -4,10 +4,10 @@ require 'datamill/cell/reactor_handler'
 module Datamill
   module Cell
 
+# Acts as a communication proxy for one kind of cell.
+# The kind of cell is modelled as a class (see `.describe_cell`)
+# and invocations of the cell ("cell runs") as instances of this class.
 class Culture
-  # Acts as a communication proxy for one kind of cell.
-  # The kind of cell is modelled as a class (see `.describe_cell`)
-  # and invocations of the cell ("cell runs") as instances of this class.
 
   class << self
     # Provide an implementation for a cell run by passing a block!

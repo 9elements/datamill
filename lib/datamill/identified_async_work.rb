@@ -1,8 +1,8 @@
 module Datamill
 
+# Manages asynchronous jobs with an identifier (`work_id`).
+# Cannot be used concurrently per work_id.
 class IdentifiedAsyncWork
-  # Manages asynchronous jobs with an identifier (`work_id`).
-  # Cannot be used concurrently per work_id.
 
   def initialize(thread_pool)
     @thread_pool = thread_pool

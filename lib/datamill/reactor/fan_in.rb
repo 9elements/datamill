@@ -3,10 +3,11 @@ require 'thread'
 module Datamill
   module Reactor
 
+# Manages input from a persistent message queue and implements
+# an ephemeral message side-channel. Provides a simple interface
+# for consuming messages from both sources, strictly
+# prioritizing ephemeral messages over persistent ones.
 class FanIn
-  # Handles input from persistent queue and
-  # ephemeral input channel and provides
-  # a simple interface for consuming messages
 
   def initialize(persistent_queue:)
     @persistent_queue = persistent_queue

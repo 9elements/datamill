@@ -2,8 +2,8 @@ module Datamill
   module Cell
     module Run
 
+# Represents a single run of a cell operated by a Cell::Culture.
 class Base
-  # Represents a single run of a cell operated by a Cell::Culture.
 
   class << self
     # Adds a middleware to the stack for this cell run class.

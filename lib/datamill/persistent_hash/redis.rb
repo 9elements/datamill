@@ -2,11 +2,11 @@ require 'redis'
 
 module Datamill::PersistentHash
 
+# A persistent hash map with string keys and values.
+# Absent values are returned as nil.
+#
+# This implementation uses Redis.
 class Redis
-  # A persistent hash map with string keys and values.
-  # Absent values are returned as nil.
-  #
-  # This implementation uses Redis.
 
   def initialize(connection: ::Redis.new, base_key:)
     @connection = connection

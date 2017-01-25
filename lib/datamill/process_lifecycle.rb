@@ -1,5 +1,6 @@
 module Datamill
 
+# Wraps one Datamill process.
 module ProcessLifecycle
   def self.new(*attributes)
     result = Class.new(Base) do

@@ -3,8 +3,8 @@ require 'json'
 module Datamill
   module PersistentQueue
 
+# Decorator class for (de)serialization via JSON format
 class AsJson
-  # Decorator class for (de)serialization via JSON format
 
   def self.decorate(queue)
     new(queue)

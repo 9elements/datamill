@@ -2,6 +2,9 @@ require 'datamill/reactor/fan_in'
 
 module Datamill::Reactor
 
+# The actual reactor implementation. Every message is passed to every registered handler
+# before the next message is handled. Messages come from a persistent reliable queue,
+# but can also be injected before the queue. Injected messages are lost when the process exits.
 class Instance
   def initialize(persistent_queue:, fan_in: FanIn.new(persistent_queue: persistent_queue))
     @persistent_queue = persistent_queue
@@ -12,6 +15,8 @@ class Instance
   end
   attr_reader :persistent_queue
 
+  # Adds a handler to the reactor. A handler is a callable taking a single argument, the
+  # message.
   def add_handler(handler)
     @handlers << handler
   end

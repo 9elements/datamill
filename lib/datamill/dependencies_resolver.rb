@@ -1,5 +1,29 @@
 module Datamill
 
+# Holds objects created by methods of a container object, while managing
+# dependencies between these objects.
+# Example:
+#
+#  class Container
+#    def leaf
+#      Leaf.new
+#    end
+#
+#    def intermediate(leaf)
+#      Intermediate.new(leaf)
+#    end
+#
+#    def root(intermediate:)
+#      Root.new(intermediate)
+#    end
+#  end
+#
+#  DependenciesResolver.new(Container.new).call(:root) # => Root instance returned by `root` method
+#
+# The resolver determines dependencies by looking at the names of method parameters in the container.
+# The container can be any object, including one initialized with "deep" dependencies.
+# The idea is that whilst source code must always linearize a dependency graph in textual form,
+# at least the graph is easier to follow by simply looking at the `def` declarations.
 class DependenciesResolver
   class FormalEntry
     def initialize(method)

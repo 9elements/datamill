@@ -2,6 +2,32 @@ require 'json'
 
 module Datamill
 
+# Convenience class for events that come represented in Hash form for reliable
+# (de)serialization. Subclasses can
+# * detect events in hash format as matching
+# * coerce events in hash format into an `Event` subclass instance
+# * be used in `case .. when` for comfortable dispatching of different event cases.
+# In the Example, `Event1`, ... are subclasses.
+#
+#  case event = Event.try_coerce_message(message, event_classes: [Event1, Event2, Event3])
+#  when Event1
+#    # ... do something
+#    event.some_attribute
+#  when Event2, Event3
+#    # ... do something else
+#  end
+#
+# Attributes are declared using the `attribute` and `attributes` DSL methods:
+#
+#  Event1 = Class.new(Datamill::Event) do
+#    attribute :some_attribute
+#  end
+#
+# New Events are generated and serialized like this:
+#
+#  event = Event1.new
+#  event.some_attribute = "value"
+#  event.to_h
 class Event
   class << self
     def attributes(*attr_names)
