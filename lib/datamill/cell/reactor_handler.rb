@@ -6,7 +6,6 @@ module Datamill
 
 class ReactorHandler
   module Event
-    Launch = Class.new(Datamill::Event)
     Timeout = Class.new(Datamill::Event)
     MessageToCell = Class.new(Datamill::Event) do
       attributes :behaviour_name, :id, :cell_message
@@ -20,10 +19,6 @@ class ReactorHandler
       result.id = id
       result.cell_message = cell_message
       result
-    end
-
-    def build_launch_message
-      Event::Launch.new
     end
   end
 
@@ -44,11 +39,11 @@ class ReactorHandler
     event =
       Datamill::Event.try_coerce_message(
         message,
-        event_classes: [Event::Launch, Event::Timeout, Event::MessageToCell])
+        event_classes: [Reactor::BootEvent, Event::Timeout, Event::MessageToCell])
 
     if event
       case event
-      when Event::Launch
+      when Reactor::BootEvent
         handle_handler_message_launch
       when Event::Timeout
         handle_handler_message_timer

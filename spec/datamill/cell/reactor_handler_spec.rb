@@ -1,5 +1,6 @@
 require 'datamill/cell/reactor_handler'
 require 'datamill/cell/behaviour'
+require 'datamill/reactor'
 
 describe Datamill::Cell::ReactorHandler do
   let(:persistent_hash) { {} }
@@ -54,7 +55,8 @@ describe Datamill::Cell::ReactorHandler do
   describe "launching" do
     context "without persistent data" do
       it "does nothing upon launch" do
-        subject.call(described_class.build_launch_message)
+        subject.call(Datamill::Reactor::BootEvent.new)
+        subject.call(Datamill::Reactor::BootEvent.new)
       end
     end
 
@@ -78,7 +80,7 @@ describe Datamill::Cell::ReactorHandler do
 
           emitted_message =
             expect_to_cause_one_delayed_message do
-              subject.call(described_class.build_launch_message)
+              subject.call(Datamill::Reactor::BootEvent.new)
             end
 
           expect(behaviour).to receive(:handle_timeout)
@@ -91,7 +93,7 @@ describe Datamill::Cell::ReactorHandler do
   describe "sending a cell message" do
     context "for a nonexistent behaviour" do
       before do
-        subject.call(described_class.build_launch_message)
+        subject.call(Datamill::Reactor::BootEvent.new)
       end
 
       let(:unregistered_behaviour) do
@@ -126,7 +128,7 @@ describe Datamill::Cell::ReactorHandler do
 
       context "when cell crashes in handle_message" do
         before do
-          subject.call(described_class.build_launch_message)
+          subject.call(Datamill::Reactor::BootEvent.new)
         end
 
         it "does not crash the subject" do
@@ -143,7 +145,7 @@ describe Datamill::Cell::ReactorHandler do
 
       context "when cell crashes in handle_timeout" do
         before do
-          subject.call(described_class.build_launch_message)
+          subject.call(Datamill::Reactor::BootEvent.new)
         end
 
         it "does not crash the subject" do
@@ -171,7 +173,7 @@ describe Datamill::Cell::ReactorHandler do
 
       context "when cell does not exist" do
         before do
-          subject.call(described_class.build_launch_message)
+          subject.call(Datamill::Reactor::BootEvent.new)
         end
 
         it "dispatches message to behaviour without persistent data" do
@@ -194,7 +196,7 @@ describe Datamill::Cell::ReactorHandler do
         }
 
         before do
-          subject.call(described_class.build_launch_message)
+          subject.call(Datamill::Reactor::BootEvent.new)
         end
 
         it "uses timer to perform timeout message delivery" do
@@ -230,7 +232,7 @@ describe Datamill::Cell::ReactorHandler do
 
     context "when cell assigns to persistent_data" do
       before do
-        subject.call(described_class.build_launch_message)
+        subject.call(Datamill::Reactor::BootEvent.new)
       end
 
       it "alters the persistent state" do
@@ -249,7 +251,7 @@ describe Datamill::Cell::ReactorHandler do
 
     context "when cell clears persistent_data" do
       before do
-        subject.call(described_class.build_launch_message)
+        subject.call(Datamill::Reactor::BootEvent.new)
       end
 
       it "clears obsolete slots in persistant storage" do
@@ -298,7 +300,7 @@ describe Datamill::Cell::ReactorHandler do
 
         emitted_message =
           expect_to_cause_one_delayed_message do
-            subject.call(described_class.build_launch_message)
+            subject.call(Datamill::Reactor::BootEvent.new)
           end
 
         expect(behaviour1).to receive(:handle_timeout)
@@ -311,7 +313,7 @@ describe Datamill::Cell::ReactorHandler do
       declare_behaviour(:behaviour)
 
       before do
-        subject.call(described_class.build_launch_message)
+        subject.call(Datamill::Reactor::BootEvent.new)
       end
 
       let(:cell_id) { "cell id" }
