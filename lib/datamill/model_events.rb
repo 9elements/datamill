@@ -1,5 +1,8 @@
 module Datamill
 
+# Hooks into a model class to register callback handlers emitting
+# `Datamill::Event`s. Also acts as a hash for known event classes,
+# for easy enumeration.
 class ModelEvents < Hash
   def initialize(model)
     @model = model
