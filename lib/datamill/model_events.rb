@@ -91,16 +91,19 @@ class ModelEvents < Hash
       model.after_save do
         model_events = self.class.datamill_model_events
         model_events.publish(self, "saved")
+        true
       end
 
       model.before_destroy do
         model_events = self.class.datamill_model_events
         model_events.before_destroy_effective_callable.call(self)
+        true
       end
 
       model.after_destroy do
         model_events = self.class.datamill_model_events
         model_events.publish(self, "destroyed")
+        true
       end
     end
   end
