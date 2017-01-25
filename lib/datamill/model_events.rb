@@ -76,12 +76,18 @@ class ModelEvents < Hash
   class TransactionlessCallbacks < Callbacks
     def generate_event_cases!
       events["saved"] = build_event_case("#{model}Saved")
+      events["destroyed"] = build_event_case("#{model}Destroyed")
     end
 
     def hook!
       model.after_save do
         model_events = self.class.datamill_model_events
         model_events.publish(self, "saved")
+      end
+
+      model.after_destroy do
+        model_events = self.class.datamill_model_events
+        model_events.publish(self, "destroyed")
       end
     end
   end
