@@ -115,7 +115,7 @@ class ReactorHandler
   def operating_cell(key, state)
     persistent_data = state.persistent_data
 
-    yield state
+    yield
 
     if !state.persistent_data.equal?(persistent_data)
       if state.persistent_data.nil?
