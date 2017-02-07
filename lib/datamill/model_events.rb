@@ -43,6 +43,9 @@ class ModelEvents < Hash
   end
 
   def self.attach_to(model)
+    if model.is_a?(ModelMethods)
+      raise ArgumentError, "this method can only be called once on each model"
+    end
     model.send :extend, ModelMethods
 
     events = model.datamill_model_events = new(model)
