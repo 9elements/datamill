@@ -1,10 +1,10 @@
 # Datamill
 
 This gem implements a *reactor* processing events in a at-least-once delivery way.
-Events are dispatched to singleton *handlers*, or they represent a message to a *cell*
+Events are either dispatched to singleton *handlers*, or they represent a message to a *cell*
 handled by the cell's *behaviour*.
 
-Cells are stateful entities identified by `id` and their behaviour's name.
+Cells are stateful entities identified by `id` and the names of their behaviours.
 
 Persistence for cell data and the reactor message queue is currently provided
 by Redis.
@@ -32,7 +32,7 @@ by Redis.
 You need to ensure that there is only one reactor at any time,
 across all processes. Message producers ("app") can live in
 various processes, but there must be only one reactor consuming
-the queue.
+from the queue.
 
 Each message is delivered to each handler, inside the reactor process.
 When the process terminates, processing will continue with the
@@ -57,7 +57,7 @@ may terminate).
                     persistent storage       +-----------+
 ```
 
-Each behaviour handles its own realm of cells. A cell is implemented
+Each behaviour handles its own set of cells. A cell is implemented
 by its behaviour and has an id and some persistent data. The cells
 of each behaviour are identified by their id. A behaviour's methods
 are called inside the reactor's process.
