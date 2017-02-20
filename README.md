@@ -102,9 +102,12 @@ persistent data from previous versions.
 Behaviours implement a cell by managing the cell's state, which
 encapsulates all the state of the cell and contains no behaviour
 of itself. This is a rather functional approach and not always
-nice to operate with. To give this a more object-oriented flavour,
+nice to operate with.
+
+To give this a more object-oriented flavour,
 you can implement a *cell culture* using `Datamill::Cell::Behaviour`.
-This will provide the behaviour, the interface toward the reactor, for
+
+A cell culture provides the behaviour, which is the interface toward the reactor, for
 you. Inside the cell culture you describe what a *cell run* looks like,
 a class instantiated by the behaviour to handle a single invocation
 for the cell. On this cell run you can implement general handling
