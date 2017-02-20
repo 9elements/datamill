@@ -13,6 +13,8 @@ by Redis.
 
 ### Persistent event queue, reactor and reactor handlers
 
+This illustrates how datamill works at the lowest level:
+
 ```
 
 +-----+
@@ -44,6 +46,9 @@ is no guarantee that these messages will be handled (the process
 may terminate).
 
 ### Cells and behaviours
+
+Cells and behavious are implemented on top of the concepts
+illustrated above, by using a special handler:
 
 ```
                                              +-----------+
