@@ -68,7 +68,8 @@ to a cell can be sent when persistence and delivery guarantees are
 not desired. Messages to a cell are handled by a behaviour's
 `handle_message` method.
 
-A behaviour is also called on behalf of a cell in these situations:
+A behaviour is also called on behalf of a cell in one of the following
+situations:
 * upon boot, when persistent data for the cell is found
 * the cell has requested a timeout that has expired
 
