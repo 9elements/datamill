@@ -37,7 +37,7 @@ various processes, but there must be only one reactor consuming
 from the queue.
 
 Each message is delivered to each handler, inside the reactor process.
-When the process terminates, processing will continue with the
+When the reactor process terminates, processing will continue with the
 last message that was not completely processed.
 
 Apart from messages from the persistent queue, the reactor can
