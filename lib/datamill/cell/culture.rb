@@ -1,5 +1,5 @@
 require 'datamill/cell/run/base'
-require 'datamill/cell/reactor_handler'
+require 'datamill/reactor/cell_handler'
 
 module Datamill
   module Cell
@@ -25,7 +25,7 @@ class Culture
   end
 
   def wrap_behaviour_message_for_reactor_handler(cell_id:, cell_message:)
-    Datamill::Cell::ReactorHandler.build_message_to_cell(
+    Datamill::Reactor::CellHandler.build_message_to_cell(
       behaviour: behaviour,
       id: cell_id,
       cell_message: cell_message)

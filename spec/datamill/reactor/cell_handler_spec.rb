@@ -1,8 +1,8 @@
-require 'datamill/cell/reactor_handler'
+require 'datamill/reactor/cell_handler'
 require 'datamill/cell/behaviour'
 require 'datamill/reactor'
 
-describe Datamill::Cell::ReactorHandler do
+describe Datamill::Reactor::CellHandler do
   let(:persistent_hash) { {} }
   let(:delayed_message_emitter) { double "delayed message emitter" }
 
