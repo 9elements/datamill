@@ -2,14 +2,14 @@ require 'datamill/cell/state'
 require 'datamill/event'
 
 module Datamill
-  module Cell
+  module Reactor
 
 # A `Reactor` handler managing cells. Register an instance of it with the Reactor.
 #
 # Reactor handlers are simple stateless managers of incoming messages. Cells are stateful
 # object-like managers of events with a lifetime. This class bridges these concepts
 # by managing cell invocations.
-class ReactorHandler
+class CellHandler
   module Event
     Timeout = Class.new(Datamill::Event)
     MessageToCell = Class.new(Datamill::Event) do
